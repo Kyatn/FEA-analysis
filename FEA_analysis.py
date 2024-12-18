@@ -157,7 +157,7 @@ def import_data_from_storage(FEA_test_dir, FEA_data, cols, OS):
             os.system(f"scp -r caio@xegpu:/mnt/xedisk02/FEA/{FEA_test_dir} D:/data/{FEA_test_dir}")
         else:
             os.system(f"scp -r caio@xegpu:/mnt/xedisk02/FEA/{FEA_test_dir}/{FEA_data} D:/data/{FEA_test_dir}")
-        logfolder = f'D:/data/{FEA_test_dir}'
+        logfolder = f'D:/data/{FEA_test_dir}/'
     logfiles = os.listdir(logfolder)
     for folder in logfiles:
         if "datalogs" in folder:
@@ -198,21 +198,21 @@ def import_data_from_storage(FEA_test_dir, FEA_data, cols, OS):
                             time, date = timestampTotime(df)
                             df['timestamp'] = time
                             df_ctc.append(df)
-        elif "datascope" in folder:
-            with zipfile.ZipFile(logfolder + folder) as zf:
-                folder_scope = zf.namelist()
-                print(folder_scope)
-                for scopefolder in folder_scope:
-                    scope_filenames = zf.namelist()
-                    for filename in scope_filenames:
-                        if 'csv' in filename:
-                            with zf.open(filename) as file:
-                                df = pd.read_csv(file, sep=',')
-                                scope_files.append(df)
+        #elif "datascope" in folder:
+        #    with zipfile.ZipFile(logfolder + folder) as zf:
+        #        folder_scope = zf.namelist()
+        #        print(folder_scope)
+        #        for scopefolder in folder_scope:
+        #            scope_filenames = zf.namelist()
+        #            for filename in scope_filenames:
+        #                if 'csv' in filename:
+        #                    with zf.open(filename) as file:
+        #                        df = pd.read_csv(file, sep=',')
+        #                        scope_files.append(df)
         #os.system(f'rm -r /home/caio/data/{FEA_test}')
     if OS == 'linux':
         os.system(f"rm -r /home/caio/data/{FEA_data}")
-    return df_caen1, df_caen2, df_ctc, scope_files
+    return df_caen1, df_caen2, df_ctc#, scope_files
 
 # import caen files and separate each channel data in different data frames
 def import_caen_data(FEA_test_dir, FEA_data, cols, OS):
