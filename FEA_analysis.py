@@ -140,14 +140,24 @@ def total_charge(df, t_start, t_end):
     return charge, mean_current, new_df
 
 # import data from remote PC
-def import_data_from_storage(FEA_test_dir, FEA_data, cols):
+def import_data_from_storage(FEA_test_dir, FEA_data, cols, OS):
     df_caen1 = []
     df_caen2 = []
     df_ctc = []
     scope_files = []
-#FEA_test = '240827_4FEA_vac_test'
-    os.system(f"scp -r xenon@xegpu:/mnt/xedisk02/FEA/{FEA_test_dir}/{FEA_data} /home/caio/data/")
-    logfolder = f'/home/caio/data/{FEA_data}/'
+    #FEA_test = '240827_4FEA_vac_test'
+    if OS == 'linux':
+        if FEA_test_dir == FEA_data:
+            os.system(f"scp -r caio@xegpu:/mnt/xedisk02/FEA/{FEA_test_dir} /home/caio/data/")
+        else:
+            os.system(f"scp -r caio@xegpu:/mnt/xedisk02/FEA/{FEA_test_dir}/{FEA_data} /home/caio/data/")
+        logfolder = f'/home/caio/data/{FEA_data}/'
+    elif OS == 'windows':
+        if FEA_test_dir == FEA_data:
+            os.system(f"scp -r caio@xegpu:/mnt/xedisk02/FEA/{FEA_test_dir} D:/data/{FEA_test_dir}")
+        else:
+            os.system(f"scp -r caio@xegpu:/mnt/xedisk02/FEA/{FEA_test_dir}/{FEA_data} D:/data/{FEA_test_dir}")
+        logfolder = f'D:/data/{FEA_test_dir}'
     logfiles = os.listdir(logfolder)
     for folder in logfiles:
         if "datalogs" in folder:
@@ -200,12 +210,13 @@ def import_data_from_storage(FEA_test_dir, FEA_data, cols):
                                 df = pd.read_csv(file, sep=',')
                                 scope_files.append(df)
         #os.system(f'rm -r /home/caio/data/{FEA_test}')
-    os.system(f"rm -r /home/caio/data/{FEA_data}")
+    if OS == 'linux':
+        os.system(f"rm -r /home/caio/data/{FEA_data}")
     return df_caen1, df_caen2, df_ctc, scope_files
 
 # import caen files and separate each channel data in different data frames
-def import_caen_data(FEA_test_dir, FEA_data, cols):
-    df1, df2, df3 = import_data_from_storage(FEA_test_dir, FEA_data, cols)
+def import_caen_data(FEA_test_dir, FEA_data, cols, OS):
+    df1, df2, df3 = import_data_from_storage(FEA_test_dir, FEA_data, cols, OS)
     
 
     # concat files
