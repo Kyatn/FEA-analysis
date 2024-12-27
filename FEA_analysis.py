@@ -344,4 +344,5 @@ def cumulated_charge(df):
         cum_charge.append(charge)
     
     df['cumulatedCharge'] = cum_charge
+    df = df.reset_index(drop=True)
     return df
