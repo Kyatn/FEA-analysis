@@ -17,6 +17,7 @@ import numpy as np
 import csv
 import zipfile
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 
 # function to convert timestamp to time
 def timestampTotime(df):
@@ -126,17 +127,17 @@ def total_charge(df, t_start, t_end):
     time = df['timestamp']
     caen = df.caen
     channel = df.ch
+    RUP = df.RAMPINGUP
+    RDW = df.RAMPINGDOWN
+    VSET = df.VSET
+    ISET = df.ISET
     #print(voltage)
-    data = {'timestamp': time,'IMON': current, 'VMON': voltage, 'caen':caen, 'ch':channel}
+    data = {'timestamp': time,'IMON': current, 'VMON': voltage, 'VSET':VSET, 'ISET':ISET, 'caen':caen, 'ch':channel, 'RUP':RUP, 'RDW':RDW,}
     new_df = pd.DataFrame(data)
     new_df
     #print(new_df.iloc[0:,1])
     mean_current = baselineShift(new_df, t_start, t_end)
     print(f'current used to baseline correction is {mean_current}')
-    for i in range(0,len(new_df['VMON'])-1):
-        if abs(new_df['VMON'].iloc[i+1] - new_df['VMON'].iloc[i]) < 1:
-            charge += new_df['IMON'].iloc[i]*delta_t
-            #print(charge)
     return charge, mean_current, new_df
 
 # import data from remote PC
@@ -173,7 +174,7 @@ def import_data_from_storage(FEA_test_dir, FEA_data, cols, OS):
                         continue
                     if "caen1" in filename:
                         with zf.open(filename) as file:
-                            df = pd.read_csv(file, sep=',',usecols=cols) # this depends highly in the data we are dealing with
+                            df = pd.read_csv(file, sep=',', usecols=cols) # this depends highly in the data we are dealing with
                             #print(len(df[cols[0]]))
                             time, date = timestampTotime(df)
                             df['timestamp'] = time
@@ -184,7 +185,7 @@ def import_data_from_storage(FEA_test_dir, FEA_data, cols, OS):
                             df_caen1.append(df)
                     if "caen2" in filename:
                         with zf.open(filename) as file:
-                            df = pd.read_csv(file, sep=',',usecols=cols) # this depends highly in the data we are dealing with
+                            df = pd.read_csv(file, sep=',', usecols=cols) # this depends highly in the data we are dealing with
                             caen = [2 for i in range(len(df[cols[0]]))]
                             time, date = timestampTotime(df)
                             df['timestamp'] = time
@@ -288,25 +289,32 @@ def partial_charge(df, t_start, t_end, t_start_b, t_end_b):
                 new_t_end = new_date.strftime('%y/%m/%d-%H:%M:%S')
                 time_end = df[df['timestamp'] == new_t_end].index[0]
     time = df['timestamp'].loc[time_start:time_end].tolist()
-    print(time)
+    #print(time)
     current = df.IMON.loc[time_start:time_end].tolist()
     voltage = df.VMON.loc[time_start:time_end].tolist()
     caen = df.caen.loc[time_start:time_end].tolist()
     channel = df.ch.loc[time_start:time_end].tolist()
+    RUP = df.RUP.loc[time_start:time_end].tolist()
+    RDW = df.RDW.loc[time_start:time_end].tolist()
+    VSET = df.VSET.loc[time_start:time_end].tolist()
+    ISET = df.ISET.loc[time_start:time_end].tolist()
+    FEA = df.FEA.loc[time_start:time_end].tolist()
+    #OVC = df.OVC.loc[time_start:time_end].tolist()
     #time = df.loc[time_start:time_end]['timestamp']
     #print(time)
     #print(voltage)
-    data = {'timestamp': time, 'IMON': current, 'VMON': voltage, 'caen':caen, 'ch':channel}
+    data = {'timestamp': time, 'IMON': current, 'VMON': voltage, 'caen':caen, 'ch':channel, 'RUP':RUP, 'RDW':RDW, 'VSET':VSET, 'ISET':ISET}
     new_df = pd.DataFrame(data)
     #print(new_df.iloc[0:,1])
     mean_current = baselineShift(df, t_start_b, t_end_b)
     print(f'current used to baseline correction is {mean_current}')
+    #cumulative_charge = []
     for i in range(0, len(new_df['VMON'])-1):
         #print(i)
-        if abs(new_df['VMON'].loc[i+1] - new_df['VMON'].loc[i]) < 1:
+        if new_df.RUP.iloc[i] == 'no' and new_df.RDW.iloc[i] == 'no':
             charge += new_df.loc[i]['IMON']
-            #print(charge)
-    print(f'charge of caen {caen} ch {channel} is {charge} uC \nperiod: {new_t_start} to {new_t_end}')
+        #    print(charge)
+    #print(f'charge of caen {caen} ch {channel} is {charge} uC \nperiod: {new_t_start} to {new_t_end}')
     return new_df
 
 def LXe_volume(FEA_test_dir, FEA_data, pressure):
@@ -325,3 +333,15 @@ def LXe_volume(FEA_test_dir, FEA_data, pressure):
     v = np.sum(yyy)/pressure
     print(f"the volume of GXe is: {v}")
     plt.plot(xx,yyy)
+
+def cumulated_charge(df):
+    current_list = df.IMON
+    delta_t = 2
+    cum_charge = []
+    charge = 0
+    for current in current_list:
+        charge += current*delta_t
+        cum_charge.append(charge)
+    
+    df['cumulatedCharge'] = cum_charge
+    return df
